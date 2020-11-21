@@ -19,9 +19,8 @@ int main() {
 	/*
 	 * create socket for server
 	 */
-	server_d = socket(AF_INET, SOCK_STREAM, 0);
-	if (server_d < 0) {
-		printf("Unable to create server!\n");
+	if ((server_d = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("Unable to create server");
 		return -1;
 	}
 
@@ -43,7 +42,7 @@ int main() {
 	 * bind server
 	 */
 	if (bind(server_d, (struct sockaddr *) &server, sizeof(server)) < 0) {
-		printf("Unable to bind server!\n");
+		perror("Unable to bind server");
 		return -1;
 	}
 
@@ -54,7 +53,7 @@ int main() {
 		/* accept client */
 		client_d = accept(server_d, (struct sockaddr *) &client, &l);
 
-		printf("S-a conectat un client.\n");
+		printf("Client connected.\n");
 		/* receive file path */
 		uint32_t path_size;
 		recv(client_d, &path_size, sizeof(path_size), MSG_WAITALL);

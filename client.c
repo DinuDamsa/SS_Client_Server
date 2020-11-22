@@ -31,9 +31,11 @@ int main(int argc, char **argv) {
 	 */
 	size_t size = PATH_MAX;
 	char *filepath_name = (char*)malloc(sizeof(char)*size);
+	/* REVIEW: don't forget to free this */
 	size_t filepath_size;
 	if((filepath_size = getline(&filepath_name, &size, stdin)) == -1) {
 		perror("Unable to read from console.\n");
+		free(filepath_name);
 		return -1;
 	}
 	// getline keeps the '\n' if exists, delete it
@@ -42,33 +44,46 @@ int main(int argc, char **argv) {
 	printf("%s  %d\n", filepath_name, filepath_size);
 
 	/*
-	 * getcwd gets the absolute path for the current folder (client folder)
+	 * getcwd gets the absolute path for the current directory (client directory)
 	 * returns NULL if the current path is larger that PATH_MAX
 	 */
-	char current_folder_absolute_path[PATH_MAX];
-	if (getcwd(current_folder_absolute_path, PATH_MAX) == NULL) {
-		perror("Couldn't get current folder!");
+	char current_directory_absolute_path[PATH_MAX];
+	if (getcwd(current_directory_absolute_path, PATH_MAX) == NULL) {
+		perror("Couldn't get current directory!");
+		free(filepath_name);
 		return -1;
 	} else {
-		printf("Current working folder: %s\n", current_folder_absolute_path);
+		printf("Current working directory: %s\n", current_directory_absolute_path);
 	}
 
 	/*
-	 * realpath gets the absolute path for a file that is relative to the current folder
+	 * realpath gets the absolute path for a file that is relative to the current directory
 	 * returns NULL if file is not found
 	 * allocs memory, don't forget to free it
 	 */
 	char* desired_file_absolute_path;
 	if((desired_file_absolute_path = realpath(filepath_name, NULL)) == NULL){
 		perror("Cannot find file with the given name");
+		free(filepath_name);
 		return -1;
 	} else{
 		printf("Path found: %s\n", desired_file_absolute_path);
-		free(desired_file_absolute_path); // REVIEW: delete this and free after use
+		// free(desired_file_absolute_path); // REVIEW: delete this and free after use
 	}
 
-	// TODO: compare current_folder_absolute_path and desired_file_absolute_path
-	// desired_file_absolute_path should be $current_folder_absolute_path/(.)+
+	/* we don't need filepath_name from now on */
+	free(filepath_name);
+
+	/*
+	 * check if the desired file is inside the current directory
+	 */
+	for(int i=0; current_directory_absolute_path[i]; i++) {
+		if(current_directory_absolute_path[i] != desired_file_absolute_path[i]) {
+			printf("Given path is not in the current directory!\n");
+			free(desired_file_absolute_path);
+			return -1;
+		}
+	}
 
 	/* client and server DS */
 	int client_d;
@@ -79,6 +94,7 @@ int main(int argc, char **argv) {
 	 */
 	if ((client_d = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror("Unable to create client");
+		free(desired_file_absolute_path);
 		return -1;
 	}
 
@@ -95,6 +111,7 @@ int main(int argc, char **argv) {
 	 */
 	if (connect(client_d, (struct sockaddr *) &server, sizeof(server)) < 0) {
 		perror("Unable to connect to server");
+		free(desired_file_absolute_path);
 		return -1;
 	}
 
@@ -104,8 +121,12 @@ int main(int argc, char **argv) {
 	int fd = open(filepath_name, O_RDONLY);
 	if (fd < 0) {
 		perror("File does not exist or cannot be opened");
+		free(desired_file_absolute_path);
 		return -1;
 	}
+
+	/* we don't need desired_file_absolute_path from now on */
+	free(desired_file_absolute_path);
 
 	/*
 	 * send file

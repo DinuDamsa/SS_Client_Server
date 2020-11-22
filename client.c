@@ -131,11 +131,11 @@ int main(int argc, char **argv) {
 	/*
 	 * send file
 	 */
-	unsigned int path_size = desired_file_absolute_path + 1;
+	unsigned int path_size = strlen(desired_file_absolute_path) + 1;
 	printf("Sending size: %d\n", path_size);
 	printf("Sending path: %s\n", desired_file_absolute_path);
 	send(client_d, &path_size, sizeof(path_size), 0);
-	send(client_d, filepath_name, path_size, 0);
+	send(client_d, desired_file_absolute_path, path_size, 0);
 
 	/*
 	 * get size of file

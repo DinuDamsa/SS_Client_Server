@@ -125,9 +125,6 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	/* we don't need desired_file_absolute_path from now on */
-	free(desired_file_absolute_path);
-
 	/*
 	 * send file
 	 */
@@ -163,6 +160,9 @@ int main(int argc, char **argv) {
 		 */
 		send(client_d, buf, bytes_read, 0);
 	}
+
+	free(desired_file_absolute_path);
+
 	/*
 	 * close client
 	 */

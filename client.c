@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 	/*
 	 * connect to server
 	 */
-	if (connect(client_d, (struct sockaddr *) &server, sizeof(server)) < 0) {
+	if ((connect(client_d, (struct sockaddr *) &server, sizeof(server))) == -1) {
 		perror("Unable to connect to server");
 		free(desired_file_absolute_path);
 		return -1;
@@ -118,8 +118,8 @@ int main(int argc, char **argv) {
 	/*
 	 * open given file
 	 */
-	int fd = open(filepath_name, O_RDONLY);
-	if (fd < 0) {
+	int desired_file_descriptor;
+	if ((desired_file_descriptor = open(desired_file_absolute_path, O_RDONLY)) == -1) {
 		perror("File does not exist or cannot be opened");
 		free(desired_file_absolute_path);
 		return -1;
@@ -131,9 +131,9 @@ int main(int argc, char **argv) {
 	/*
 	 * send file
 	 */
-	unsigned int path_size = filepath_size + 1;
+	unsigned int path_size = desired_file_absolute_path + 1;
 	printf("Sending size: %d\n", path_size);
-	printf("Sending path: %s\n", filepath_name);
+	printf("Sending path: %s\n", desired_file_absolute_path);
 	send(client_d, &path_size, sizeof(path_size), 0);
 	send(client_d, filepath_name, path_size, 0);
 
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
 	 * this will be divided into chunks I think
 	 */
 	struct stat st;
-	fstat(fd, &st);
+	fstat(desired_file_descriptor, &st);
 	int file_size = st.st_size;
 	printf("Size of given file: %d\n", file_size);
 
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
 	/*
 	 * read file
 	 */
-	while (bytes_read = read(fd, buf, file_size)) {
+	while (bytes_read = read(desired_file_descriptor, buf, file_size)) {
 		buf[bytes_read++] = '\0';
 		printf("Read %d bytes: %s\n", bytes_read, buf);
 		/*

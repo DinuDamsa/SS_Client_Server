@@ -30,9 +30,10 @@ int main(int argc, char **argv) {
 	 * get path of file from cli rather than from the argv
 	 */
 	size_t size = PATH_MAX;
-	char *filepath_name = (char*)malloc(sizeof(char)*size);
+	char *filepath_name = (char*)malloc(sizeof(char)*size + 1);
 	/* REVIEW: don't forget to free this */
 	size_t filepath_size;
+	
 	if((filepath_size = getline(&filepath_name, &size, stdin)) == -1) {
 		perror("Unable to read from console.\n");
 		free(filepath_name);
@@ -41,7 +42,7 @@ int main(int argc, char **argv) {
 	// getline keeps the '\n' if exists, delete it
 	if(filepath_name[filepath_size-1] == '\n') filepath_size--;
 	filepath_name[filepath_size]='\0';
-	printf("%s  %d\n", filepath_name, filepath_size);
+	printf("%s  %ld\n", filepath_name, filepath_size);
 
 	/*
 	 * getcwd gets the absolute path for the current directory (client directory)
@@ -66,7 +67,7 @@ int main(int argc, char **argv) {
 		perror("Cannot find file with the given name");
 		free(filepath_name);
 		return -1;
-	} else{
+	} else {
 		printf("Path found: %s\n", desired_file_absolute_path);
 		// free(desired_file_absolute_path); // REVIEW: delete this and free after use
 	}
@@ -128,7 +129,7 @@ int main(int argc, char **argv) {
 	/*
 	 * send file
 	 */
-	unsigned int path_size = strlen(desired_file_absolute_path) + 1;
+	size_t path_size = strlen(desired_file_absolute_path) + 1;
 	printf("Sending size: %d\n", path_size);
 	printf("Sending path: %s\n", desired_file_absolute_path);
 	send(client_d, &path_size, sizeof(path_size), 0);
@@ -143,12 +144,13 @@ int main(int argc, char **argv) {
 	int file_size = st.st_size;
 	printf("Size of given file: %d\n", file_size);
 
-	char buf[file_size+1];
-	unsigned int bytes_read;
+	char buf[file_size + 1];
+	ssize_t bytes_read;
 	/*
 	 * read file
 	 */
-	while (bytes_read = read(desired_file_descriptor, buf, file_size)) {
+	
+	while ((bytes_read = read(desired_file_descriptor, buf, file_size)) > 0) {
 		buf[bytes_read++] = '\0';
 		printf("Read %d bytes: %s\n", bytes_read, buf);
 		/*
@@ -160,7 +162,11 @@ int main(int argc, char **argv) {
 		 */
 		send(client_d, buf, bytes_read, 0);
 	}
-
+	if (bytes_read < 0){
+		perror("Error while reading file content");
+		free(desired_file_absolute_path);
+		return -1;
+	}
 	free(desired_file_absolute_path);
 
 	/*

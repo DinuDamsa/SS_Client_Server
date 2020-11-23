@@ -12,7 +12,7 @@
 
 int main() {
 	int server_d;
-	int client_d, l;
+	int client_d;
 	/* client and server DS */
 	struct sockaddr_in server, client;
 
@@ -35,7 +35,6 @@ int main() {
 	/*
 	 * set client
 	 */
-	l = sizeof(client);
 	memset(&client, 0, sizeof(client));
 
 	/*
@@ -47,27 +46,42 @@ int main() {
 	}
 
 	/* listen for connections */
-	listen(server_d, 5);
+	listen(server_d, 1);
 
 	for(;;) {
 		/* accept client */
-		client_d = accept(server_d, (struct sockaddr *) &client, &l);
-
+		client_d = accept(server_d, (struct sockaddr *) &client, sizeof(client));
 		printf("Client connected.\n");
 		/* receive file path */
-		uint32_t path_size;
+		size_t path_size;
 		recv(client_d, &path_size, sizeof(path_size), MSG_WAITALL);
 		printf("Received size: %d\n", path_size);
 		char *buffer = (char *) malloc(path_size * sizeof(char));
 		recv(client_d, buffer, path_size, MSG_WAITALL);
 		printf("Received path: %s\n", buffer);
+
 		/* receive text */
- 		uint32_t text_size;
+		//TODO: pay attention on receiving multiple chunks from client
+		ssize_t text_size;
 		recv(client_d, &text_size, sizeof(text_size), MSG_WAITALL);
 		printf("Received size: %d\n", text_size);
-		char *buff_text = (char *) malloc(sizeof(char)*text_size);
+		char *buff_text = (char*) malloc(sizeof(char)*text_size);
 		recv(client_d, buff_text, text_size, MSG_WAITALL);
 		printf("Received text: %s\n", buff_text);
+
+		//implement file opening and write data received from client
+		
+		/*get current directory*/
+		char current_directory_absolute_path[PATH_MAX];
+		if (getcwd(current_directory_absolute_path, PATH_MAX) == NULL) {
+			perror("Couldn't get current directory!");
+			free(filepath_name);
+			return -1;
+		} else {
+			printf("Current working directory: %s\n", current_directory_absolute_path);
+		}
+		
+		
 
 		/* free buffer memory */
 		free(buffer);

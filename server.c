@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <limits.h>
+#include <fcntl.h>
 #define PORT 	1234
 #define ADDR 	"127.0.0.1"
 
@@ -17,22 +19,22 @@ int main() {
 	struct sockaddr_in server, client;
 
 	/*
-	 * set server
-	 */
+		* set server
+	*/
 	memset(&server, 0, sizeof(server));
 	server.sin_port = htons(PORT);
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
 
 	/*
-	 * set client
-	 */
+		* set client
+	*/
 	socklen_t client_socket_size = sizeof(struct sockaddr_in);
 	memset(&client, 0, sizeof(client));
 
 	/*
-	 * create socket for server & bind
-	 */
+		* create socket for server & bind
+	*/
 	if (
 		((server_d = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	||	(bind(server_d, (struct sockaddr *) &server, sizeof(server)) < 0)
@@ -42,17 +44,17 @@ int main() {
 	}
 
 	/*
-	 * listen for connections; listen() returns -1 if something goes wrong; 0 otherwise
-	 */
+		* listen for connections; listen() returns -1 if something goes wrong; 0 otherwise
+	*/
 	if(listen(server_d, 1) == -1) {
 		perror("Error");
 		return -1;
 	}
 
 	/*
-	 * get current directory
-	 * this is null terminated
-	 */
+		* get current directory
+		* this is null terminated
+	*/
 	char current_directory_absolute_path[PATH_MAX];
 	if (getcwd(current_directory_absolute_path, PATH_MAX) == NULL) {
 		perror("Couldn't get current directory!");
@@ -66,16 +68,30 @@ int main() {
 		client_d = accept(server_d, (struct sockaddr *) &client, &client_socket_size);
 		printf("Client connected.\n");
 		/* receive file path */
-		size_t path_size;
 		/*
-		 * NOTE: recv only send "-1" as error if it was called in a non-blocking manner
-		 * check for error if this is changed
-		 */
+			* NOTE: recv only send "-1" as error if it was called in a non-blocking manner
+			* check for error if this is changed
+		*/
+		size_t path_size;
 		recv(client_d, &path_size, sizeof(path_size), MSG_WAITALL);
 		printf("Received size: %ld\n", path_size);
 		char *buffer = (char *) malloc(path_size * sizeof(char));
 		recv(client_d, buffer, path_size, MSG_WAITALL);
 		printf("Received path: %s\n", buffer);
+
+		/*
+			* open file to write received data
+			* create if there is no such file
+			* the received file is relative to server's current folder
+		*/
+		int desired_file_descriptor;
+		if (
+			((desired_file_descriptor = open(buffer, O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO)) == -1)
+		||	((desired_file_descriptor = open(buffer, O_WRONLY)) == -1)
+		) {
+			perror("Error");
+			return -1;
+		}
 
 		/* receive chunks of bytes */
 		int bytes_chunks;
@@ -87,8 +103,8 @@ int main() {
 			printf("Received size: %ld\n", text_size);
 			char *buff_text = (char*) malloc(sizeof(char)*text_size);
 			recv(client_d, buff_text, text_size, MSG_WAITALL);
-			// printf("Received text: %s\n", buff_text);
-			// TODO: implement file opening and write data received from client
+			printf("Received text: %s\n", buff_text);
+			printf("%ld\n", write(desired_file_descriptor, buff_text, text_size));
 			free(buff_text);
 		}
 

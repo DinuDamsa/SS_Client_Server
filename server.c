@@ -80,6 +80,11 @@ int main() {
 		*/
 		size_t path_size = 0;
 		char *buffer = (char *) malloc(path_size * sizeof(char));
+		if (NULL == buffer) {
+			exit_with_status(client_d, -1);
+			perror("Error on memory allocation");
+			return -1;
+		}
 		if (
 			(recv(client_d, &path_size, sizeof(path_size), MSG_WAITALL) <= 0)
 		||  (recv(client_d, buffer, path_size, MSG_WAITALL) <= 0)
@@ -123,6 +128,11 @@ int main() {
 			}
 			printf("Received size: %ld\n", text_size);
 			char *buff_text = (char*) malloc(sizeof(char)*text_size);
+			if (NULL == buff_text) {
+				exit_with_status(client_d, -1);
+				perror("Error on memory allocation");
+				return -1;
+			}
 			if(recv(client_d, buff_text, text_size, MSG_WAITALL) < 0) {
 				exit_with_status(client_d, -1);
 				free(buff_text);

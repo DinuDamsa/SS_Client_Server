@@ -58,7 +58,10 @@ int main() {
 	ssize_t filepath_size;  /* this will have the actual size of the given input */
 	char *filepath_name = (char*)malloc(sizeof(char)*PATH_MAX + 1);
 	/* REVIEW: don't forget to free this */
-	/* TODO: test mallocs everywhere :) */
+	if (NULL == filepath_name) {
+		perror("Error on memory allocation");
+		return -1;
+	}
 
 	if((filepath_size = getline(&filepath_name, &size, stdin)) == -1) {
 		perror("Unable to read from console.\n");
@@ -109,6 +112,11 @@ int main() {
 	*/
 	size_t size_file_to_write = strlen(desired_file_absolute_path) - common + 2;
 	char* file_to_write = (char*)malloc(sizeof(char) * size_file_to_write);
+	if (NULL == file_to_write) {
+		perror("Error on memory allocation");
+		free(desired_file_absolute_path);
+		return -1;
+	}
 	file_to_write[0] = 's';
 	file_to_write[1] = '_';
 	/* REVIEW: change algo for file name sent to server */
